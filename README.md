@@ -1,0 +1,1 @@
+# Panacea.Applications.Registrator
