@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
@@ -38,31 +39,31 @@ namespace PanaceaRegistrator
                 var webcams = new List<string>();
                 var audioout = new List<string>();
                 Putik.Text = (await TerminalIdentificationManager.GetIdentificationInfoAsync()).Putik;
-                _socket.Error +=  (oo, ee) =>
-                {
-                    Dispatcher.Invoke(async () =>
-                    {
-                        status.Text = "Check internet connection.";
-                        await RestartApplicationWithCounter(_socket, 4);
-                    });
-                    
-                };
+                _socket.Error += (oo, ee) =>
+               {
+                   Dispatcher.Invoke(async () =>
+                   {
+                       status.Text = "Check internet connection.";
+                       await RestartApplicationWithCounter(_socket, 4);
+                   });
+
+               };
                 _socket.On("connect", msg => Dispatcher.Invoke(async () =>
                 {
-                    
-                        _socket.Emit("register",
-                            new
+
+                    _socket.Emit("register",
+                        new
+                        {
+                            mac = (await TerminalIdentificationManager.GetIdentificationInfoAsync()).Putik,
+                            data = new
                             {
-                                mac = (await TerminalIdentificationManager.GetIdentificationInfoAsync()).Putik,
-                                data = new
-                                {
-                                    mac_addresses = new[]
-                                        {(await TerminalIdentificationManager.GetIdentificationInfoAsync()).Putik},
-                                    name = Environment.MachineName,
-                                    devices = new {videoin = webcams, audioin = audioout}
-                                }
-                            });
-                   
+                                mac_addresses = new[]
+                                    {(await TerminalIdentificationManager.GetIdentificationInfoAsync()).Putik},
+                                name = Environment.MachineName,
+                                devices = new { videoin = webcams, audioin = audioout }
+                            }
+                        });
+
                     status.Text = "Connected! Registration was sent...";
                     await RestartApplicationWithCounter(_socket, 120);
                 }));
@@ -89,7 +90,7 @@ namespace PanaceaRegistrator
                     await RestartApplicationWithCounter(_socket);
                 }));
 
-               
+
 
 
                 _socket.On("registerPending",
@@ -127,7 +128,7 @@ namespace PanaceaRegistrator
             {
                 if (_timer == null)
                 {
-                    _timer = new DispatcherTimer {Interval = new TimeSpan(0, 0, 0, 1)};
+                    _timer = new DispatcherTimer { Interval = new TimeSpan(0, 0, 0, 1) };
                     _timer.Tick += (oo, ee) =>
                     {
                         status.Text = "Panacea will restart in " + _seconds;
@@ -139,7 +140,7 @@ namespace PanaceaRegistrator
                             socket.Dispose();
                             Dispatcher.Invoke(() =>
                             {
-                                Process.Start(Utils.Path() + "IBT.Updater.exe");
+                                Process.Start(Utils.GetPath("..", "..", "Updater", "IBT.Updater.exe"));
                                 Application.Current.Shutdown();
                             });
                         }
@@ -169,9 +170,9 @@ namespace PanaceaRegistrator
 
     public static class Utils
     {
-        public static string Path()
+        public static string GetPath(params string[] parts)
         {
-            return System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + "\\";
+            return Path.Combine(new string[] { Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) }.Concat(parts).ToArray());
         }
     }
 }
